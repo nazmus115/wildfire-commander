@@ -1,10 +1,15 @@
 import tkinter as tk
+import random
+from collections import deque
 
 CELL = 40 # each grid square 40 pixels wide and long
 SIZE = 14 # the board have SIZE rows and colums 
 FOREST, BREAK, FIRE, BURNT, VILLAGE = range(5) # sets forest = 0, break = 1 and so on
 BREAKS_PER_TURN = 2
 breaks_left = BREAKS_PER_TURN
+SPREAD_CHANCE = 0.75
+fire_queue = deque([(1, 1)])
+turn = 0
 
 COLORS = {
     FOREST: "#3b8a3e",
@@ -65,7 +70,27 @@ def draw():
             x = c * CELL
             y = r * CELL
             canvas.create_rectangle(x, y , x + CELL, y + CELL, fill=COLORS[grid[r][c]], outline="#1f1f1f")
-    status.config(text=f"Firebreaks Left: {breaks_left}")
+        status.config(text=f"Turn {turn}   Firebreaks left: {breaks_left}   Fire front: {len(fire_queue)}")
+    
+def next_turn():
+    global fire_queue, breaks_left, turn
+    
+    new_front = deque()
+    while fire_queue:
+        r,c = fire_queue.popleft()
+        for nr, nc in neighbors(r ,c):
+            if grid[nr][nc] in (FOREST, VILLAGE):
+                if random.random() < SPREAD_CHANCE:
+                    grid[nr][nc] = FIRE
+                    new_front.append((nr,nc))
+        grid[r][c] = BURNT
+    fire_queue = new_front
+    breaks_left = BREAKS_PER_TURN
+    turn += 1
+    draw()
+
+tk.Button(root, text="Next turn", command=next_turn).pack()
+root.bind("<space>", lambda e: next_turn())
 
 canvas.bind("<Button-1>", on_click)
 draw()
